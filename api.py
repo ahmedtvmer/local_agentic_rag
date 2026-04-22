@@ -1,4 +1,5 @@
 import time
+from typing import Dict, List
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -31,6 +32,7 @@ class AskRequest(BaseModel):
         description="The user's natural-language question.",
         json_schema_extra={"example": "What is retrieval-augmented generation?"},
     )
+    chat_history: List[Dict[str, str]] = []
 
 
 class AskResponse(BaseModel):
@@ -75,7 +77,8 @@ async def ask(request: AskRequest) -> AskResponse:
         "docs": [],
         "raw_docs": [],
         "retry_count": 0,
-        "grade": ""
+        "grade": "",
+        "chat_history": request.chat_history,
     }
 
     start = time.perf_counter()

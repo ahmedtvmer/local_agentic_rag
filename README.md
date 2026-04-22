@@ -1,30 +1,36 @@
-# Local Agentic RAG: Self-Correcting LLM Architecture on Constrained Hardware
+# Agentic RAG for High-Performance Local Workstations
 
-A fully local, self-correcting Retrieval-Augmented Generation (RAG) pipeline built from scratch. This project abandons black-box agent wrappers in favor of a deterministic state machine, running a heavily optimized inference engine designed to fit entirely within a single 16GB T4 GPU.
+An edge-optimized, local-first Retrieval-Augmented Generation (RAG) pipeline built for environments with strict VRAM constraints (e.g., 4GB mobile GPUs). 
 
-## System Architecture
+This system uses a LangGraph state machine to intelligently route, retrieve, and evaluate queries against a local ChromaDB vector store, powered by an Ollama-managed Llama 3.1 8B engine.
 
-This pipeline is engineered to solve the three primary failure modes of standard RAG systems: silent hallucinations, wording mismatches, and hardware out-of-memory (OOM) crashes.
+## 🧠 Architecture Overview
+* **Orchestration:** LangGraph (Agentic state machine with fallback/rewrite logic)
+* **Backend:** FastAPI (Async API wrapper)
+* **LLM Engine:** Llama 3.1 8B via Ollama (Host-managed for optimal VRAM offloading)
+* **Embedding Model:** `all-MiniLM-L6-v2` (Local HuggingFace pipeline)
+* **Reranking:** `ms-marco-MiniLM-L-12-v2` Cross-Encoder (Boosts top-K precision)
+* **Frontend:** Streamlit (Chat UI)
 
-### Key Engineering Features
+## 🛠️ Hardware & Engineering Optimizations
+This project was specifically engineered to run on an **NVIDIA Quadro T2000 (4GB VRAM)**. Standard vLLM/Transformer serving architectures fail under these constraints due to KV-cache memory allocation. 
 
-* **Self-Correcting Routing (State Machine):** Built with LangGraph, the agent evaluates its own answers using a strict `reflect` node. If the retrieved documents lack the answer, it triggers a fallback loop to a `rewrite_query` node, optimizing its own search terms and querying the vector database again until it succeeds or hits a hard circuit breaker.
-* **Maximum Recall Retrieval (Ensemble):** Implements an advanced retrieval layer utilizing Multi-Query expansion and Hypothetical Document Embeddings (HyDE). The system queries ChromaDB simultaneously with the original question, three generated variants, and a hallucinated answer shape, deduplicating the results to cast a massive semantic net.
-* **Precision Reranking (Cross-Encoder):** Passes the deduplicated, high-recall document batch through an `ms-marco-MiniLM-L-12-v2` Cross-Encoder to guarantee only the most mathematically relevant chunks are injected into the final LLM prompt.
-* **Semantic ETL Pipeline:** Replaces naive web scraping with a robust `BeautifulSoup` data ingestion script that targets specific DOM containers, sanitizes HTML boilerplate and citation noise, and chunks documents strictly by paragraph boundaries to preserve semantic meaning.
-* **Hardware-Optimized Inference:** Runs the ungated Qwen 2.5 3B Instruct model locally via vLLM. Engineered specifically for standard Colab T4 hardware by capping GPU memory utilization at 0.7 and disabling CUDA graphs (`--enforce-eager`) to leave exact VRAM clearance for the embedding models and KV cache.
+**Solutions Implemented:**
+1. **Ollama Split-Execution:** Leveraged `llama.cpp` under the hood to load critical model layers onto the 4GB GPU while seamlessly offloading the remainder to system RAM.
+2. **Local-First Embedding:** Isolated the embedding and reranking models from the generative LLM to prevent VRAM fragmentation.
+3. **Containerized Microservices:** Dockerized the FastAPI backend and Streamlit frontend while mapping host volumes, ensuring the container remains extremely lightweight (~200MB) without baking in model weights.
 
-## Tech Stack
+## 🚀 Getting Started
 
-* **Inference Engine:** vLLM (Local), Qwen 2.5 3B Instruct
-* **Orchestration & State Management:** LangGraph, LangChain Core
-* **Vector Database:** ChromaDB
-* **Embeddings & Reranking:** HuggingFace (`all-MiniLM-L6-v2`), SentenceTransformers (Cross-Encoder)
-* **Data Ingestion:** BeautifulSoup4, Requests
+### Prerequisites
+1. Docker & Docker Compose
+2. [Ollama](https://ollama.com/) installed on the host machine.
+3. Pull the required model: `ollama run llama3.1:8b`
 
-## Hardware Requirements
+### Run the Stack
+```bash
+# 1. Export local embedding models (one-time setup)
+uv run python scripts/export_models.py
 
-To run this pipeline locally, you must meet the following constraints:
-
-* **GPU:** 1x NVIDIA T4 (or any equivalent GPU with at least 14.5 GB usable VRAM)
-* **Memory:** 16 GB System RAM
+# 2. Spin up the API and UI
+docker compose up --build -d

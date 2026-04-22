@@ -1,0 +1,22 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./local_models:/app/local_models
+      - ./db:/app/db
+    environment:
+      - OLLAMA_HOST=http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  frontend:
+    build: .
+    ports:
+      - "8501:8501"
+    command: [ "uv", "run", "streamlit", "run", "frontend.py", "--server.port=8501", "--server.address=0.0.0.0" ]
+    depends_on:
+      - api
+    restart: unless-stopped
