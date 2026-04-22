@@ -18,7 +18,7 @@ env/
 db/
 
 # Do not push the downloaded HuggingFace models to GitHub
-models/
+local_models/
 
 # ==============================================================================
 # Secrets & Environment Variables
