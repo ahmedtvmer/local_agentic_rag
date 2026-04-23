@@ -1,5 +1,7 @@
 # Agentic RAG — Fully Local, Self-Correcting LLM Pipeline
 
+![Agentic RAG Demo](agentic_rag_demo.gif)
+
 A production-grade, fully local Retrieval-Augmented Generation system engineered from scratch to run on **entry-level GPUs** (as low as 4 GB VRAM). The entire stack — inference, embeddings, reranking, vector search, and a chat UI — runs on your machine with zero cloud dependencies.
 
 ---
